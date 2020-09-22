@@ -27,7 +27,6 @@ def get_model(conf, num_class=10, local_rank=-1):
         model = WideResNet(40, 2, dropout_rate=0.0, num_classes=num_class)
     elif name == 'wresnet28_10':
         model = WideResNet(28, 10, dropout_rate=0.0, num_classes=num_class)
-
     elif name == 'shakeshake26_2x32d':
         model = ShakeResNet(26, 32, num_class)
     elif name == 'shakeshake26_2x64d':
@@ -75,6 +74,14 @@ def get_model(conf, num_class=10, local_rank=-1):
                 if module.bias is not None:
                     torch.nn.init.constant_(module.bias, val=0.)
         model.apply(kernel_initializer)
+    elif name == 'resnet101_deeplab_imagenet':
+        from .deeplab2 import  resnet101_deeplab_imagenet
+        model = resnet101_deeplab_imagenet(num_classes=num_class, pretrained=True)
+    elif name == 'unetmini':
+        from .unet import UNetmini
+        model = UNetmini(classes=num_class)
+
+
     else:
         raise NameError('no model named, %s' % name)
 

@@ -5,7 +5,6 @@ import time
 from collections import OrderedDict, defaultdict
 
 import torch
-import torch.utils.model_zoo as model_zoo
 import numpy as np
 from hyperopt import hp
 import ray
@@ -14,14 +13,14 @@ from ray.tune.trial import Trial
 from ray.tune.trial_runner import TrialRunner
 # from ray.tune.suggest import HyperOptSearch
 from ray.tune.suggest.hyperopt import HyperOptSearch
-from ray.tune import register_trainable, run_experiments, run
+from ray.tune import run
 from ray import tune
 from tqdm import tqdm
 
 from FastAutoAugment.archive import remove_deplicates, policy_decoder
 from FastAutoAugment.augmentations import augment_list
 from FastAutoAugment.common import get_logger, add_filehandler
-from FastAutoAugment.data import get_dataloaders
+from FastAutoAugment.datasets.data import get_dataloaders
 from FastAutoAugment.metrics import Accumulator
 from FastAutoAugment.networks import get_model, num_class
 from FastAutoAugment.train import train_and_eval

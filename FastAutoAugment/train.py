@@ -20,7 +20,7 @@ from tqdm import tqdm
 from theconf import Config as C, ConfigArgumentParser
 
 from FastAutoAugment.common import get_logger, EMA, add_filehandler
-from FastAutoAugment.data import get_dataloaders
+from FastAutoAugment.datasets.data import get_dataloaders
 from FastAutoAugment.lr_scheduler import adjust_learning_rate_resnet
 from FastAutoAugment.metrics import accuracy, Accumulator, CrossEntropyLabelSmooth
 from FastAutoAugment.networks import get_model, num_class
