@@ -6,7 +6,7 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
-
+from FastAutoAugment.transforms_target import  PILToLongTensor
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 NUM_CLASSES = 19
@@ -19,8 +19,11 @@ label_colours = [[128, 64, 128], [244, 35, 232], [70, 70, 70], [102, 102, 156],
                  [0, 0, 230], [119, 11, 32], [0, 0, 0]]  # the color of ignored label(-1)
 label_colours = list(map(tuple, label_colours))
 
-name_classes = ['road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'trafflight', 'traffsign', 'vegetation', 'terrain', 'sky', 'person', 'rider',
+name_classes = ['road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'trafflight', 'traffsign', 'vegetation',
+
+                'terrain', 'sky', 'person', 'rider',
                 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle', 'unlabeled']
+
 
 def decode_labels(mask, num_images=1, num_classes=NUM_CLASSES):
     """Decode batch of segmentation masks.
@@ -86,9 +89,11 @@ def inspect_decode_labels(pred, num_images=1, num_classes=NUM_CLASSES,
 
 
 class GTA5_Dataset(data.Dataset):
-    def __init__(self, data_root_path='/content/GTA5', split='train', crop_size=(321, 321), training=True, seed=1, sample='full'):
+    def __init__(self, data_root_path='/content/GTA5', split='train', transform_pre=None,
+                 transform_after=None, transform_target_after=None, seed=1, sample='full'):
         assert os.path.exists(data_root_path)
-        self.img_path_zip, self.gt_path_zip = os.path.join(data_root_path, 'images.zip'), os.path.join(data_root_path, 'labels.zip')
+        self.img_path_zip, self.gt_path_zip = os.path.join(data_root_path, 'images.zip'), os.path.join(data_root_path,
+                                                                                                       'labels.zip')
         assert (os.path.exists(self.img_path_zip) and os.path.exists(self.gt_path_zip))
 
         self.split = split
@@ -103,8 +108,15 @@ class GTA5_Dataset(data.Dataset):
             rang = np.random.RandomState(seed)
             self.items = np.random.choice(self.items, sample, replace=False)
         # self.id_to_trainid = {7: 0,8: 1,11: 2,12: 3,13: 4,17: 5,19: 6,20: 7,21: 8,22: 9,23: 10,24: 11,25: 12,26: 13,27: 14,28: 15,31: 16,32: 17,33: 18,34: 13}
-        self.id_to_trainid = d = {7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5, 18: 5, 19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12, 26: 13, 34: 13, 27: 14, 28: 15, 31: 16,
-     32: 17, 33: 18, 0: 19, 1: 19, 2: 19, 3: 19, 4: 19, 5: 19, 6: 19, 9: 19, 10: 19, 14: 19, 15: 19, 16: 19, 29: 19, 30: 19}
+        self.id_to_trainid = d = {7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5, 18: 5, 19: 6, 20: 7, 21: 8, 22: 9, 23: 10,
+                                  24: 11, 25: 12, 26: 13, 34: 13, 27: 14, 28: 15, 31: 16,
+                                  32: 17, 33: 18, 0: 19, 1: 19, 2: 19, 3: 19, 4: 19, 5: 19, 6: 19, 9: 19, 10: 19,
+                                  14: 19, 15: 19, 16: 19, 29: 19, 30: 19}
+
+        self.transform_after = transform_after if transform_after is not None else transforms.ToTensor()
+        self.transform_target_after = transform_target_after if transform_target_after is not None  else PILToLongTensor()
+        self.transfom_pre = transform_pre if transform_pre  is not None else None
+
         print("{} num images in GTA5 {} set have been loaded.".format(len(self.items), self.split))
 
     @property
@@ -113,9 +125,16 @@ class GTA5_Dataset(data.Dataset):
 
     def __getitem__(self, item):
         id = self.items[item]
-        image = Image.open(self.img_archive.open(os.path.join(self.image_filepath, "{:0>5d}.png".format(id)))).convert("RGB")
+        image = Image.open(self.img_archive.open(os.path.join(self.image_filepath, "{:0>5d}.png".format(id)))).convert(
+            "RGB")
         gt = Image.open(self.gt_archive.open(os.path.join(self.gt_filepath, "{:0>5d}.png".format(id))))
         gt = self._mask_transform(gt)
+
+        if self.transfom_pre is not None :
+            image, gt = self.transfom_pre(image ,gt )
+        image = self.transform_after(image)
+        gt = self.transform_target_after(gt)
+
         return image, gt
 
     def _mask_transform(self, gt_image):  # check if cross entropy ask from long or float
@@ -132,7 +151,6 @@ class GTA5_Dataset(data.Dataset):
 
     def __len__(self):
         return self.items.shape[0]
-
 
 # '''
 # 7 -- road                 	 [128.  64, 128]  7 : 0
